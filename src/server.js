@@ -17,6 +17,7 @@ app.use(morgan('dev'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
+
 // Rate limiting global
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -36,3 +37,6 @@ const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`API Gateway démarré sur le port ${PORT}`);
 });
+
+app.use('/api/auth', require('./routes/auth.routes'));
+app.use('/api/products', require('./routes/product.routes'));
