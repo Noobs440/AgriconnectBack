@@ -1,13 +1,16 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
+const { initWebSocket } = require('./services/websocket.service');
 
 const app = express();
+const server = http.createServer(app);
 
 // Middlewares globaux
 app.use(helmet());
@@ -34,9 +37,12 @@ app.get('/health', (req, res) => {
 // app.use('/api/auth', require('./routes/auth.routes'));
 
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
+initWebSocket(server);
+
+server.listen(PORT, () => {
   console.log(`API Gateway démarré sur le port ${PORT}`);
 });
 
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/products', require('./routes/product.routes'));
+app.use('/api/market', require('./routes/market.routes'));

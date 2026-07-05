@@ -33,6 +33,7 @@ model User {
 
   products  Product[] @relation("SellerProducts")
   orders    Order[]   @relation("BuyerOrders")
+  limitOrders LimitOrder[]
 }
 
 model Product {
@@ -44,6 +45,8 @@ model Product {
   quantity    Int      @default(0)
   sellerId    String
   seller      User     @relation("SellerProducts", fields: [sellerId], references: [id])
+  priceHistory PriceHistory[]
+  limitOrders  LimitOrder[]   @relation("ProductLimitOrders")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -56,4 +59,31 @@ model Order {
   totalAmount Float
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+}
+
+enum LimitOrderStatus {
+  PENDING
+  FILLED
+  CANCELLED
+}
+
+model PriceHistory {
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  price      Float
+  recordedAt DateTime @default(now())
+}
+
+model LimitOrder {
+  id          String           @id @default(uuid())
+  productId   String
+  product     Product          @relation("ProductLimitOrders", fields: [productId], references: [id])
+  buyerId     String
+  buyer       User             @relation(fields: [buyerId], references: [id])
+  targetPrice Float
+  quantity    Int
+  status      LimitOrderStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }
