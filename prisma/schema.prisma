@@ -49,6 +49,7 @@ model Product {
   limitOrders  LimitOrder[]   @relation("ProductLimitOrders")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  orderItems OrderItem[]
 }
 
 model Order {
@@ -59,6 +60,8 @@ model Order {
   totalAmount Float
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  items    OrderItem[]
+  payments Payment[]
 }
 
 enum LimitOrderStatus {
@@ -86,4 +89,40 @@ model LimitOrder {
   status      LimitOrderStatus @default(PENDING)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum PaymentProvider {
+  MTN_MOMO
+  ORANGE_MONEY
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Float
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id             String          @id @default(uuid())
+  orderId        String
+  order          Order           @relation(fields: [orderId], references: [id])
+  provider       PaymentProvider
+  status         PaymentStatus   @default(PENDING)
+  amount         Float
+  phoneNumber    String
+  externalRefId  String?         @unique
+  rawCallback    Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
