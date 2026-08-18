@@ -68,7 +68,7 @@ async function createOrder(req, res) {
         include: {
           items: {
             include: {
-              product: { select: { id: true, title: true } },
+              product: { select: { id: true, title: true, location: true } },
             },
           },
         },

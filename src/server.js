@@ -15,7 +15,7 @@ const server = http.createServer(app);
 // Middlewares globaux
 app.use(helmet());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -48,3 +48,14 @@ app.use('/api/products', require('./routes/product.routes'));
 app.use('/api/market', require('./routes/market.routes'));
 app.use('/api/orders', require('./routes/order.routes'));
 app.use('/api/payments', require('./routes/payment.routes'));
+app.use('/api/crowdfunding', require('./routes/crowdfunding.routes'));
+app.use('/api/contracts', require('./routes/contract.routes'));
+app.use('/api/traceability', require('./routes/traceability.routes'));
+app.use('/api/notifications', require('./routes/notification.routes'));
+app.use('/analytics', require('./routes/analytics.routes'));
+app.use('/admin', require('./routes/admin.routes'));
+app.use('/notifications', require('./routes/notification.routes'));
+app.use('/contracts', require('./routes/contract.routes'));
+app.use('/traceability', require('./routes/traceability.routes'));
+app.use('/chat', require('./routes/chat.routes'));
+app.use('/api/chat', require('./routes/chat.routes'));

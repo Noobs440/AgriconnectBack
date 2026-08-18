@@ -1,5 +1,21 @@
 const prisma = require('../config/prisma');
 const { recalculatePrice } = require('../services/pricing.service');
+const { getExternalMarketPrices } = require('../services/externalMarket.service');
+
+function shouldUseDatabaseError(err) {
+  return Boolean(
+    err && (
+      err.code === 'P1000' ||
+      err.code === 'P1001' ||
+      err.code === 'P2021' ||
+      err.code === 'P1017' ||
+      err.message?.includes('DATABASE_URL') ||
+      err.message?.includes('database') ||
+      err.message?.includes('connect') ||
+      err.message?.includes('AuthenticationFailed')
+    )
+  );
+}
 
 async function getCurrentPrices(req, res) {
   try {
@@ -13,11 +29,31 @@ async function getCurrentPrices(req, res) {
       return res.json(product);
     }
 
-    const products = await prisma.product.findMany({
-      select: { id: true, title: true, price: true, quantity: true, updatedAt: true },
+    try {
+      const externalMarket = await getExternalMarketPrices();
+      return res.json({
+        prices: externalMarket.prices,
+        meta: {
+          source: 'external',
+          fetchedAt: externalMarket.fetchedAt,
+        },
+      });
+    } catch (externalError) {
+      console.warn('Source externe du marché indisponible, utilisation du fallback local:', externalError.message);
+    }
+
+    return res.json({
+      prices: [],
+      meta: {
+        source: 'external-unavailable',
+        message: 'Aucune cotation externe disponible. Les données simulées locales ne sont pas affichées.',
+      },
     });
-    res.json(products);
   } catch (err) {
+    if (shouldUseDatabaseError(err)) {
+      return res.status(503).json({ error: 'Service de marché indisponible' });
+    }
+
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
   }
@@ -48,6 +84,10 @@ async function getPriceHistory(req, res) {
 
     res.json(history);
   } catch (err) {
+    if (shouldUseDatabaseError(err)) {
+      return res.status(503).json({ error: 'Service de marché indisponible' });
+    }
+
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
   }

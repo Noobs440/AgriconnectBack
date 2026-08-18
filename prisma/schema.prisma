@@ -6,6 +6,98 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id          String   @id @default(uuid())
+  email       String?  @unique
+  contact     String?  @unique
+  password    String
+  fullName    String?
+  profileImage String?
+  role        Role     @default(BUYER_PARTICULIER)
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  limitOrders LimitOrder[]
+  orders      Order[]  @relation("BuyerOrders")
+  products    Product[] @relation("SellerProducts")
+}
+
+model Product {
+  id           String         @id @default(uuid())
+  title        String
+  description  String?
+  price        Float
+  category     String?
+  quantity     Int            @default(0)
+  images       String[]       @default([])
+  location     String?
+  sellerId     String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  limitOrders  LimitOrder[]   @relation("ProductLimitOrders")
+  orderItems   OrderItem[]
+  priceHistory PriceHistory[]
+  seller       User           @relation("SellerProducts", fields: [sellerId], references: [id])
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  buyerId     String
+  status      OrderStatus @default(PENDING)
+  totalAmount Float
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  buyer       User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  items       OrderItem[]
+  payments    Payment[]
+}
+
+model PriceHistory {
+  id         String   @id @default(uuid())
+  productId  String
+  price      Float
+  recordedAt DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id])
+}
+
+model LimitOrder {
+  id          String           @id @default(uuid())
+  productId   String
+  buyerId     String
+  targetPrice Float
+  quantity    Int
+  status      LimitOrderStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  buyer       User             @relation(fields: [buyerId], references: [id])
+  product     Product          @relation("ProductLimitOrders", fields: [productId], references: [id])
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitPrice Float
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id            String          @id @default(uuid())
+  orderId       String
+  provider      PaymentProvider
+  status        PaymentStatus   @default(PENDING)
+  amount        Float
+  phoneNumber   String
+  externalRefId String?         @unique
+  rawCallback   Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  order         Order           @relation(fields: [orderId], references: [id])
+}
+
 enum Role {
   FARMER
   BUYER_PRO
@@ -21,74 +113,10 @@ enum OrderStatus {
   CANCELLED
 }
 
-model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  password  String
-  fullName  String?
-  role      Role      @default(BUYER_PARTICULIER)
-  isVerified Boolean  @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  products  Product[] @relation("SellerProducts")
-  orders    Order[]   @relation("BuyerOrders")
-  limitOrders LimitOrder[]
-}
-
-model Product {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  price       Float
-  category    String?
-  quantity    Int      @default(0)
-  sellerId    String
-  seller      User     @relation("SellerProducts", fields: [sellerId], references: [id])
-  priceHistory PriceHistory[]
-  limitOrders  LimitOrder[]   @relation("ProductLimitOrders")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  orderItems OrderItem[]
-}
-
-model Order {
-  id          String      @id @default(uuid())
-  buyerId     String
-  buyer       User        @relation("BuyerOrders", fields: [buyerId], references: [id])
-  status      OrderStatus @default(PENDING)
-  totalAmount Float
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  items    OrderItem[]
-  payments Payment[]
-}
-
 enum LimitOrderStatus {
   PENDING
   FILLED
   CANCELLED
-}
-
-model PriceHistory {
-  id         String   @id @default(uuid())
-  productId  String
-  product    Product  @relation(fields: [productId], references: [id])
-  price      Float
-  recordedAt DateTime @default(now())
-}
-
-model LimitOrder {
-  id          String           @id @default(uuid())
-  productId   String
-  product     Product          @relation("ProductLimitOrders", fields: [productId], references: [id])
-  buyerId     String
-  buyer       User             @relation(fields: [buyerId], references: [id])
-  targetPrice Float
-  quantity    Int
-  status      LimitOrderStatus @default(PENDING)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
 }
 
 enum PaymentStatus {
@@ -100,29 +128,4 @@ enum PaymentStatus {
 enum PaymentProvider {
   MTN_MOMO
   ORANGE_MONEY
-}
-
-model OrderItem {
-  id        String   @id @default(uuid())
-  orderId   String
-  order     Order    @relation(fields: [orderId], references: [id])
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  quantity  Int
-  unitPrice Float
-  createdAt DateTime @default(now())
-}
-
-model Payment {
-  id             String          @id @default(uuid())
-  orderId        String
-  order          Order           @relation(fields: [orderId], references: [id])
-  provider       PaymentProvider
-  status         PaymentStatus   @default(PENDING)
-  amount         Float
-  phoneNumber    String
-  externalRefId  String?         @unique
-  rawCallback    Json?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
 }

@@ -19,4 +19,10 @@ async function sendOtpEmail(to, otp) {
   });
 }
 
-module.exports = { sendOtpEmail };
+async function sendOtpToContact(contact, otp) {
+  // Placeholder: integrate SMS provider here. For now, log the OTP so devs can use it.
+  console.log(`OTP for ${contact}: ${otp}`);
+  return true;
+}
+
+module.exports = { sendOtpEmail, sendOtpToContact };
