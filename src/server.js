@@ -34,6 +34,9 @@ app.use(limiter);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'agriconnect-api-gateway' });
 });
+app.get('/healthz', (req, res) => {
+  res.json({ status: 'ok', service: 'agriconnect-api-gateway' });
+});
 
 // TODO: monter les routes ici au fur et à mesure (Jour 2+)
 // app.use('/api/auth', require('./routes/auth.routes'));
