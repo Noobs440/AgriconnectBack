@@ -2,7 +2,6 @@ services:
   - type: web
     name: agriconnect-api
     runtime: node
-    rootDir: AgriconnectBack
     buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /health
