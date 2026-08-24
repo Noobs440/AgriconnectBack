@@ -12,9 +12,11 @@ const { initWebSocket } = require('./services/websocket.service');
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigin = process.env.FRONTEND_URL?.trim();
+
 // Middlewares globaux
 app.use(helmet());
-app.use(cors());
+app.use(cors({ origin: allowedOrigin || true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
