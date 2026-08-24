@@ -2,7 +2,7 @@
 
 ## Deploy on Render
 
-Create a Render **Web Service** connected to the repository containing this backend. Set **Root Directory** to `AgriconnectBack` when the backend is in a monorepo.
+Create a Render **Blueprint** connected to this repository. Because this repository contains the backend at its root, leave **Root Directory** empty.
 
 Use these settings:
 
@@ -11,7 +11,7 @@ Use these settings:
 - Start command: `npm start`
 - Health check path: `/health`
 
-Create a Render PostgreSQL database and Redis instance, then add their connection URLs as `DATABASE_URL` and `REDIS_URL`. Add all application secrets from `.env.example` in Render under **Environment**. Set `FRONTEND_URL` to `https://agri-connect-rho-ruby.vercel.app`.
+The included `render.yaml` creates the PostgreSQL database and a private Render Key Value instance, then injects `DATABASE_URL` and `REDIS_URL` into the API automatically. Add the application secrets from `.env.example` in Render under **Environment**. Set `FRONTEND_URL` to `https://agri-connect-rho-ruby.vercel.app`.
 
 Render supplies `PORT` automatically; the server must continue listening on that value. After deployment, verify `https://your-backend.onrender.com/health`, then set the frontend `VITE_API_BASE_URL` to `https://your-backend.onrender.com/api`.
 

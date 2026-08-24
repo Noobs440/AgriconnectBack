@@ -1,4 +1,9 @@
 services:
+  - type: keyvalue
+    name: agriconnect-redis
+    plan: free
+    ipAllowList: []
+
   - type: web
     name: agriconnect-api
     runtime: node
@@ -13,7 +18,10 @@ services:
           name: agriconnect-db
           property: connectionString
       - key: REDIS_URL
-        sync: false
+        fromService:
+          name: agriconnect-redis
+          type: keyvalue
+          property: connectionString
       - key: FRONTEND_URL
         value: https://agri-connect-rho-ruby.vercel.app
 
