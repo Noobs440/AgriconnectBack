@@ -12,7 +12,9 @@ const { initWebSocket } = require('./services/websocket.service');
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '')
+const allowedOrigins = [process.env.FRONTEND_URL, process.env.FRONTEND_URLS]
+  .filter(Boolean)
+  .join(',')
   .split(',')
   .map(origin => origin.trim())
   .filter(Boolean);
