@@ -25,7 +25,7 @@ services:
       - key: FRONTEND_URL
         value: https://agri-connect-idbiv11fz-hyancinthe-kamtes-projects.vercel.app
       - key: FRONTEND_URLS
-        value: https://agri-connect-rho-ruby.vercel.app,https://agri-connect-idbiv11fz-hyancinthe-kamtes-projects.vercel.app
+        value: https://agri-connect-rho-ruby.vercel.app,https://agri-connect-idbiv11fz-hyancinthe-kamtes-projects.vercel.app,https://agri-connect-80obz0l8v-hyancinthe-kamtes-projects.vercel.app
       # Configure these values in the Render dashboard. Never commit SMTP secrets.
       - key: SMTP_HOST
         sync: false

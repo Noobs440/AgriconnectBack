@@ -10,12 +10,12 @@ const smtpConfig = {
 };
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
+  host: smtpConfig.host,
+  port: Number(smtpConfig.port),
   secure: false, // true pour le port 465
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: smtpConfig.user,
+    pass: smtpConfig.pass,
   },
 });
 

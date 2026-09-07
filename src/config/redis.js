@@ -7,7 +7,11 @@ function unavailable() {
 }
 
 const redis = redisUrl
-	? new Redis(redisUrl)
+	? new Redis(redisUrl, {
+			connectTimeout: 5000,
+			maxRetriesPerRequest: 1,
+			enableOfflineQueue: false,
+		})
 	: {
 			set: unavailable,
 			get: unavailable,

@@ -50,10 +50,10 @@ async function requestOtp(req, res) {
     res.json({ message: 'OTP envoyé' });
   } catch (err) {
     console.error(err);
-    if (err?.code === 'ESMTPCONFIG' || err?.code === 'EAUTH' || err?.responseCode === 535 || err?.code === 'ECONNECTION' || err?.code === 'ENOTFOUND') {
+    if (err?.code === 'ESMTPCONFIG' || err?.code === 'EAUTH' || err?.responseCode === 535 || err?.code === 'ECONNECTION' || err?.code === 'ENOTFOUND' || err?.code === 'ECONNREFUSED' || err?.code === 'ETIMEDOUT' || err?.name === 'MaxRetriesPerRequestError' || err?.message?.includes('Redis')) {
       return res.status(503).json({
-        error: 'Le service e-mail est momentanément indisponible. Vérifiez la configuration SMTP dans Render puis réessayez.',
-        code: 'EMAIL_SERVICE_UNAVAILABLE',
+        error: 'Un service requis est momentanément indisponible. Vérifiez Redis et SMTP dans Render puis réessayez.',
+        code: 'DEPENDENCY_UNAVAILABLE',
       });
     }
     res.status(500).json({ error: 'Erreur serveur' });
