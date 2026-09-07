@@ -50,9 +50,9 @@ async function requestOtp(req, res) {
     res.json({ message: 'OTP envoyé' });
   } catch (err) {
     console.error(err);
-    if (err?.code === 'EAUTH' || err?.responseCode === 535) {
+    if (err?.code === 'ESMTPCONFIG' || err?.code === 'EAUTH' || err?.responseCode === 535 || err?.code === 'ECONNECTION' || err?.code === 'ENOTFOUND') {
       return res.status(503).json({
-        error: 'Le service e-mail est temporairement indisponible. Vérifiez la configuration SMTP ou réessayez plus tard.',
+        error: 'Le service e-mail est momentanément indisponible. Vérifiez la configuration SMTP dans Render puis réessayez.',
         code: 'EMAIL_SERVICE_UNAVAILABLE',
       });
     }
