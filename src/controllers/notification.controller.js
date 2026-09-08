@@ -1,20 +1,34 @@
-const notifications = [];
+const prisma = require('../config/prisma');
 
-function listNotifications(req, res) {
+async function listNotifications(req, res) {
+  const notifications = await prisma.notification.findMany({
+    where: { userId: req.user.id },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
   return res.json({ notifications });
 }
 
-function createNotification(req, res) {
+async function createNotification(req, res) {
   const { title, body } = req.body || {};
-  const notification = {
-    id: `notif-${Date.now()}`,
-    title: title || 'Notification',
-    body: body || 'Nouvelle activité',
-    read: false,
-    createdAt: new Date().toISOString(),
-  };
-  notifications.unshift(notification);
+  const notification = await prisma.notification.create({
+    data: {
+      userId: req.user.id,
+      title: title || 'Notification',
+      body: body || 'Nouvelle activité',
+    },
+  });
   return res.status(201).json({ notification });
 }
 
-module.exports = { listNotifications, createNotification };
+async function markNotificationRead(req, res) {
+  const notification = await prisma.notification.updateMany({
+    where: { id: req.params.id, userId: req.user.id },
+    data: { read: Boolean(req.body?.read ?? true) },
+  });
+
+  if (notification.count === 0) return res.status(404).json({ error: 'Notification introuvable' });
+  return res.json({ success: true });
+}
+
+module.exports = { listNotifications, createNotification, markNotificationRead };

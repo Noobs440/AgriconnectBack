@@ -1,15 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const { authenticate } = require('../middlewares/auth.middleware');
+const { listConversations, listMessages, sendMessage } = require('../controllers/chat.controller');
 
-router.get('/messages', (req, res) => {
-  return res.json({ messages: [
-    { id: 'm1', from: 'system', text: 'Bienvenue sur le chat AgriConnect', ts: new Date().toISOString() },
-  ] });
-});
-
-router.post('/messages', (req, res) => {
-  const { text } = req.body || {};
-  return res.status(201).json({ message: { id: `m-${Date.now()}`, from: 'user', text: text || '...', ts: new Date().toISOString() } });
-});
+router.get('/conversations', authenticate, listConversations);
+router.get('/messages', authenticate, listMessages);
+router.post('/messages', authenticate, sendMessage);
 
 module.exports = router;

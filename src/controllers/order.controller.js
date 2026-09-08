@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { notifySellersOfOrder } = require('../services/notification.service');
 
 async function createOrder(req, res) {
   try {
@@ -74,6 +75,12 @@ async function createOrder(req, res) {
         },
       });
     });
+
+    try {
+      await notifySellersOfOrder(result, validatedItems.map(({ product }) => product));
+    } catch (notificationError) {
+      console.error('Impossible de créer les notifications de commande:', notificationError);
+    }
 
     res.status(201).json(result);
   } catch (err) {

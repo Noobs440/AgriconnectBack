@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { isOwnerOrAdmin } = require('../utils/ownership.util');
+const { notifyUsersOfNewProduct } = require('../services/notification.service');
 
 function shouldUseDatabaseError(err) {
   return Boolean(
@@ -63,13 +64,21 @@ async function createProduct(req, res) {
       include: { seller: { select: { id: true, email: true, fullName: true } } },
     });
 
-    return res.status(201).json({ product: serializeProduct({
+    const serializedProduct = serializeProduct({
       ...product,
       unit,
       location,
       quality,
       deliveryTime,
-    }) });
+    });
+
+    try {
+      await notifyUsersOfNewProduct(product);
+    } catch (notificationError) {
+      console.error('Impossible de créer les notifications de nouvelle offre:', notificationError);
+    }
+
+    return res.status(201).json({ product: serializedProduct });
   } catch (err) {
     if (shouldUseDatabaseError(err)) {
       return res.status(503).json({ error: 'Service produit indisponible' });
