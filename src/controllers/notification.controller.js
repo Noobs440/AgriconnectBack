@@ -10,12 +10,14 @@ async function listNotifications(req, res) {
 }
 
 async function createNotification(req, res) {
-  const { title, body } = req.body || {};
+  const { title, body, kind, targetId } = req.body || {};
   const notification = await prisma.notification.create({
     data: {
       userId: req.user.id,
       title: title || 'Notification',
       body: body || 'Nouvelle activité',
+      kind: kind || 'general',
+      targetId: targetId || null,
     },
   });
   return res.status(201).json({ notification });

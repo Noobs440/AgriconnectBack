@@ -1,8 +1,8 @@
 const prisma = require('../config/prisma');
 
-async function notifyUser(userId, title, body) {
+async function notifyUser(userId, title, body, kind = 'general', targetId = null) {
   return prisma.notification.create({
-    data: { userId, title, body },
+    data: { userId, title, body, kind, targetId },
   });
 }
 
@@ -19,6 +19,8 @@ async function notifyUsersOfNewProduct(product) {
       userId: id,
       title: 'Nouvelle offre disponible',
       body: `${product.title} est maintenant disponible au prix de ${product.price}.`,
+      kind: 'publication',
+      targetId: product.id,
     })),
   });
 }
@@ -32,6 +34,8 @@ async function notifySellersOfOrder(order, products) {
       userId,
       title: 'Nouvelle commande reçue',
       body: `La commande ${order.id} contient une ou plusieurs de vos offres pour un montant total de ${order.totalAmount}.`,
+      kind: 'order',
+      targetId: order.id,
     })),
   });
 }

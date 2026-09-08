@@ -106,6 +106,8 @@ model Notification {
   userId    String
   title     String
   body      String
+  kind      String   @default("general")
+  targetId  String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

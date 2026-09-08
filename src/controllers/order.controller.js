@@ -136,7 +136,8 @@ async function getOrderDetail(req, res) {
     });
 
     if (!order) return res.status(404).json({ error: 'Commande introuvable' });
-    if (order.buyerId !== req.user.id && req.user.role !== 'ADMIN') {
+    const isSellerOfOrder = order.items.some(item => item.product.sellerId === req.user.id);
+    if (order.buyerId !== req.user.id && !isSellerOfOrder && req.user.role !== 'ADMIN') {
       return res.status(403).json({ error: 'Vous n\'êtes pas autorisé à voir cette commande' });
     }
 

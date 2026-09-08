@@ -66,6 +66,16 @@ async function sendMessage(req, res) {
     include: { sender: { select: userSelect } },
   });
 
+  await prisma.notification.create({
+    data: {
+      userId: receiverId,
+      title: 'Nouveau message',
+      body: `${req.user.email || 'Un utilisateur'} vous a envoyé un message.`,
+      kind: 'message',
+      targetId: req.user.id,
+    },
+  });
+
   return res.status(201).json({ message: formatMessage(message, req.user.id) });
 }
 
