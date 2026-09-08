@@ -2,6 +2,8 @@ const prisma = require('../config/prisma');
 const { generateOtp, storeOtp, verifyOtp } = require('../services/otp.service');
 const { sendOtpEmail, sendOtpToContact } = require('../services/email.service');
 const bcrypt = require('bcryptjs');
+const axios = require('axios');
+const crypto = require('crypto');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken, revokeRefreshToken } = require('../services/token.service');
 
 const VALID_ROLES = new Set(['FARMER', 'BUYER_PRO', 'BUYER_PARTICULIER', 'ADMIN']);
@@ -153,19 +155,19 @@ async function verifyOtpAndRegister(req, res) {
 async function login(req, res) {
   try {
     const { identifier, type } = parseIdentifier(req);
-    const otp = req.body.otp || req.body.code;
+    const password = req.body.password;
 
     if (!identifier || !type) return res.status(400).json({ error: 'identifier requis' });
-    if (!otp) return res.status(400).json({ error: 'OTP requis pour la connexion' });
+    if (!password) return res.status(400).json({ error: 'Mot de passe requis pour la connexion' });
 
     const where = getUserWhere(type, identifier);
     const user = await prisma.user.findUnique({ where });
     if (!user) {
-      return res.status(404).json({ error: 'Utilisateur introuvable. Veuillez utiliser /verify-otp pour vous inscrire.' });
+      return res.status(404).json({ error: 'Utilisateur introuvable' });
     }
 
-    const isValid = await verifyOtp(type, identifier, otp);
-    if (!isValid) return res.status(400).json({ error: 'OTP invalide ou expiré' });
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) return res.status(401).json({ error: 'Identifiant ou mot de passe incorrect' });
 
     const tokens = await createAuthTokens(user);
     res.json({
@@ -175,6 +177,87 @@ async function login(req, res) {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });
+  }
+}
+
+function getGoogleRedirectUri() {
+  return process.env.GOOGLE_CALLBACK_URL || `${process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 8000}`}/api/auth/google/callback`;
+}
+
+function getFrontendUrl() {
+  return (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+}
+
+function redirectGoogleError(res, message) {
+  const url = new URL(`${getFrontendUrl()}/auth`);
+  url.searchParams.set('mode', 'login');
+  url.searchParams.set('google_error', message);
+  return res.redirect(url.toString());
+}
+
+function startGoogleAuth(req, res) {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return redirectGoogleError(res, 'La connexion Google n’est pas configurée.');
+  }
+
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    redirect_uri: getGoogleRedirectUri(),
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'online',
+    prompt: 'select_account',
+  });
+
+  return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+}
+
+async function googleCallback(req, res) {
+  try {
+    if (req.query.error) return redirectGoogleError(res, 'Connexion Google annulée.');
+    if (!req.query.code || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return redirectGoogleError(res, 'La connexion Google n’est pas configurée correctement.');
+    }
+
+    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', new URLSearchParams({
+      code: req.query.code,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: getGoogleRedirectUri(),
+      grant_type: 'authorization_code',
+    }).toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+
+    const profileResponse = await axios.get('https://openidconnect.googleapis.com/v1/userinfo', {
+      headers: { Authorization: `Bearer ${tokenResponse.data.access_token}` },
+    });
+    const profile = profileResponse.data;
+    if (!profile.email || profile.email_verified === false) {
+      return redirectGoogleError(res, 'Google n’a pas fourni une adresse e-mail vérifiée.');
+    }
+
+    let user = await prisma.user.findUnique({ where: { email: profile.email } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email: profile.email,
+          password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10),
+          fullName: profile.name || profile.email.split('@')[0],
+          profileImage: profile.picture || null,
+          isVerified: true,
+          role: 'BUYER_PARTICULIER',
+        },
+      });
+    }
+
+    const { accessToken } = await createAuthTokens(user);
+    const redirectUrl = new URL(`${getFrontendUrl()}/auth`);
+    redirectUrl.searchParams.set('google_token', accessToken);
+    return res.redirect(redirectUrl.toString());
+  } catch (err) {
+    console.error('Google OAuth error:', err?.response?.data || err.message);
+    return redirectGoogleError(res, 'La connexion avec Google a échoué.');
   }
 }
 
@@ -342,4 +425,4 @@ async function updateProfile(req, res) {
   }
 }
 
-module.exports = { requestOtp, register, verifyOtpAndRegister, login, refreshToken, getProfile, listSellers, listUsers, updateProfile, logout, addRole, switchRole };
+module.exports = { requestOtp, register, verifyOtpAndRegister, login, startGoogleAuth, googleCallback, refreshToken, getProfile, listSellers, listUsers, updateProfile, logout, addRole, switchRole };
