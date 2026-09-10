@@ -10,6 +10,7 @@ model User {
   id          String   @id @default(uuid())
   email       String?  @unique
   contact     String?  @unique
+  gender      String?
   password    String
   fullName    String?
   profileImage String?
@@ -20,6 +21,8 @@ model User {
   limitOrders LimitOrder[]
   orders      Order[]  @relation("BuyerOrders")
   products    Product[] @relation("SellerProducts")
+  buyerContracts Contract[] @relation("BuyerContracts")
+  sellerContracts Contract[] @relation("SellerContracts")
   notifications Notification[]
   sentMessages DirectMessage[] @relation("SentMessages")
   receivedMessages DirectMessage[] @relation("ReceivedMessages")
@@ -41,6 +44,27 @@ model Product {
   orderItems   OrderItem[]
   priceHistory PriceHistory[]
   seller       User           @relation("SellerProducts", fields: [sellerId], references: [id])
+}
+
+model Contract {
+  id            String        @id @default(uuid())
+  title         String
+  buyerId       String
+  sellerId      String
+  buyerName     String
+  sellerName    String
+  amount        Float
+  currency      String        @default("XAF")
+  status        ContractStatus @default(PENDING)
+  deliveryDate  DateTime?
+  location      String?
+  blockchainHash String?
+  certified     Boolean       @default(false)
+  image         String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  buyer         User          @relation("BuyerContracts", fields: [buyerId], references: [id])
+  seller        User          @relation("SellerContracts", fields: [sellerId], references: [id])
 }
 
 model Order {
@@ -153,6 +177,13 @@ enum PaymentStatus {
   PENDING
   SUCCESS
   FAILED
+}
+
+enum ContractStatus {
+  PENDING
+  PAID
+  DELIVERED
+  CANCELLED
 }
 
 enum PaymentProvider {

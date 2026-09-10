@@ -80,3 +80,4 @@ app.use('/contracts', require('./routes/contract.routes'));
 app.use('/traceability', require('./routes/traceability.routes'));
 app.use('/chat', require('./routes/chat.routes'));
 app.use('/api/chat', require('./routes/chat.routes'));
+app.use('/api/ai', require('./routes/ai.routes'));

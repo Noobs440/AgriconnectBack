@@ -42,47 +42,30 @@ async function getCurrentPrices(req, res) {
       console.warn('Source externe du marché indisponible, utilisation du fallback local:', externalError.message);
     }
 
+    const products = await prisma.product.findMany({
+      select: { id: true, title: true, category: true, price: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+
     return res.json({
-      prices: [],
+      prices: products.map(product => ({
+        productId: product.id,
+        productTitle: product.title,
+        category: product.category || 'Divers',
+        currentPrice: Number(product.price || 0),
+        previousPrice: Number(product.price || 0),
+        priceChange: 0,
+        priceChangePercent: 0,
+        unit: 'kg',
+        timestamp: product.updatedAt,
+        trend: 'stable',
+        aiInsight: 'Prix issu du catalogue local AgriConnect.',
+      })),
       meta: {
-        source: 'external-unavailable',
-        message: 'Aucune cotation externe disponible. Les données simulées locales ne sont pas affichées.',
+        source: 'database-fallback',
+        message: 'Source externe indisponible : prix du catalogue local affichés.',
       },
     });
-  } catch (err) {
-    if (shouldUseDatabaseError(err)) {
-      return res.status(503).json({ error: 'Service de marché indisponible' });
-    }
-
-    console.error(err);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-}
-
-async function getPriceHistory(req, res) {
-  try {
-    const { productId } = req.params;
-    const { from, to } = req.query;
-
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) return res.status(404).json({ error: 'Produit introuvable' });
-
-    const where = { productId };
-    if (from) {
-      const fromDate = new Date(from);
-      if (!Number.isNaN(fromDate.getTime())) where.recordedAt = { ...where.recordedAt, gte: fromDate };
-    }
-    if (to) {
-      const toDate = new Date(to);
-      if (!Number.isNaN(toDate.getTime())) where.recordedAt = { ...where.recordedAt, lte: toDate };
-    }
-
-    const history = await prisma.priceHistory.findMany({
-      where,
-      orderBy: { recordedAt: 'asc' },
-    });
-
-    res.json(history);
   } catch (err) {
     if (shouldUseDatabaseError(err)) {
       return res.status(503).json({ error: 'Service de marché indisponible' });
@@ -163,4 +146,4 @@ async function listLimitOrders(req, res) {
   }
 }
 
-module.exports = { getCurrentPrices, getPriceHistory, createLimitOrder, listLimitOrders };
+module.exports = { getCurrentPrices, createLimitOrder, listLimitOrders };

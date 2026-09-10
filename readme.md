@@ -37,6 +37,8 @@ npm run dev
 | MARKET_EXTERNAL_API_URL | URL de la source JSON externe des cotations |
 | MARKET_EXTERNAL_API_KEY | Clé facultative envoyée en Bearer à la source externe |
 | MARKET_EXTERNAL_TIMEOUT_MS | Délai maximal de réponse de la source externe |
+| MARKET_EXTERNAL_PRICE_MULTIPLIER | Multiplicateur de conversion du prix distant, par exemple USD vers FCFA |
+| MARKET_EXTERNAL_UNIT | Unité affichée pour les prix distants |
 
 La route `GET /api/market/prices` utilise la source externe lorsqu'elle est configurée. Elle accepte un tableau JSON ou un objet contenant `prices`, `data` ou `results`. Chaque élément doit fournir un nom (`productTitle`, `product_name`, `commodity`, `name` ou `title`) et un prix (`currentPrice`, `current_price`, `price` ou `value`). En cas d'indisponibilité, l'API signale explicitement `meta.source = database-fallback`.
 

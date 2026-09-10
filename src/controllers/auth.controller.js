@@ -393,8 +393,17 @@ async function listUsers(req, res) {
 
 async function updateProfile(req, res) {
   try {
-    const { fullName, profileImage } = req.body;
+    const { fullName, email, phone, gender, profileImage } = req.body;
     if (fullName === undefined) return res.status(400).json({ error: 'fullName requis' });
+    if (email !== undefined && email !== null && (typeof email !== 'string' || !email.includes('@'))) {
+      return res.status(400).json({ error: 'Email invalide' });
+    }
+    if (phone !== undefined && phone !== null && typeof phone !== 'string') {
+      return res.status(400).json({ error: 'Téléphone invalide' });
+    }
+    if (gender !== undefined && gender !== null && !['', 'male', 'female', 'other'].includes(gender)) {
+      return res.status(400).json({ error: 'Genre invalide' });
+    }
     if (profileImage !== undefined && profileImage !== null && (typeof profileImage !== 'string' || !profileImage.startsWith('data:image/'))) {
       return res.status(400).json({ error: 'Photo de profil invalide' });
     }
@@ -404,10 +413,18 @@ async function updateProfile(req, res) {
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { fullName, ...(profileImage !== undefined ? { profileImage } : {}) },
+      data: {
+        fullName,
+        ...(email !== undefined ? { email: email || null } : {}),
+        ...(phone !== undefined ? { contact: phone || null } : {}),
+        ...(gender !== undefined ? { gender: gender || null } : {}),
+        ...(profileImage !== undefined ? { profileImage } : {}),
+      },
       select: {
         id: true,
         email: true,
+        contact: true,
+        gender: true,
         fullName: true,
         profileImage: true,
         role: true,
@@ -421,6 +438,7 @@ async function updateProfile(req, res) {
   } catch (err) {
     console.error(err);
     if (err.code === 'P2025') return res.status(404).json({ error: 'Utilisateur introuvable' });
+    if (err.code === 'P2002') return res.status(409).json({ error: 'Cet email ou téléphone est déjà utilisé' });
     res.status(500).json({ error: 'Erreur serveur' });
   }
 }

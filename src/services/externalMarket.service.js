@@ -1,8 +1,11 @@
 const DEFAULT_TIMEOUT_MS = 8000;
+const DEFAULT_RETRY_DELAY_MS = 30000;
+let externalUnavailableUntil = 0;
 
 function extractItems(payload) {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.prices)) return payload.prices;
+  if (Array.isArray(payload?.products)) return payload.products;
   if (Array.isArray(payload?.data)) return payload.data;
   if (Array.isArray(payload?.results)) return payload.results;
   return [];
@@ -10,10 +13,19 @@ function extractItems(payload) {
 
 function normalizeExternalPrice(item, index) {
   const productTitle = item.productTitle || item.product_name || item.commodity || item.name || item.title;
-  const currentPrice = Number(item.currentPrice ?? item.current_price ?? item.price ?? item.value);
+  const rawCurrentPrice = Number(item.currentPrice ?? item.current_price ?? item.price ?? item.value);
+  const multiplier = Number(process.env.MARKET_EXTERNAL_PRICE_MULTIPLIER) || 1;
+  const currentPrice = rawCurrentPrice * multiplier;
   if (!productTitle || !Number.isFinite(currentPrice) || currentPrice <= 0) return null;
 
-  const previousPrice = Number(item.previousPrice ?? item.previous_price ?? currentPrice);
+  const rawPreviousPrice = Number(
+    item.previousPrice
+      ?? item.previous_price
+      ?? (Number(item.discountPercentage) > 0
+        ? rawCurrentPrice / (1 - Number(item.discountPercentage) / 100)
+        : rawCurrentPrice),
+  );
+  const previousPrice = rawPreviousPrice * multiplier;
   const safePreviousPrice = Number.isFinite(previousPrice) && previousPrice > 0 ? previousPrice : currentPrice;
   const priceChange = Number(item.priceChange ?? item.price_change ?? currentPrice - safePreviousPrice);
   const safePriceChange = Number.isFinite(priceChange) ? priceChange : 0;
@@ -42,7 +54,7 @@ function normalizeExternalPrice(item, index) {
     previousPrice: safePreviousPrice,
     priceChange: safePriceChange,
     priceChangePercent: Number.isFinite(priceChangePercent) ? priceChangePercent : 0,
-    unit: String(item.unit || item.currency_unit || 'unité'),
+    unit: String(item.unit || item.currency_unit || process.env.MARKET_EXTERNAL_UNIT || 'unité'),
     timestamp: item.timestamp || item.updatedAt || item.updated_at || new Date().toISOString(),
     trend: safePriceChange > 0 ? 'up' : safePriceChange < 0 ? 'down' : 'stable',
     regions,
@@ -50,6 +62,12 @@ function normalizeExternalPrice(item, index) {
 }
 
 async function getExternalMarketPrices() {
+  if (Date.now() < externalUnavailableUntil) {
+    const error = new Error('External market API temporarily unavailable');
+    error.code = 'EXTERNAL_MARKET_COOLDOWN';
+    throw error;
+  }
+
   const url = process.env.MARKET_EXTERNAL_API_URL?.trim();
   if (!url) {
     const error = new Error('MARKET_EXTERNAL_API_URL is not configured');
@@ -72,7 +90,11 @@ async function getExternalMarketPrices() {
     const prices = extractItems(payload).map(normalizeExternalPrice).filter(Boolean);
     if (prices.length === 0) throw new Error('External market API returned no valid prices');
 
+    externalUnavailableUntil = 0;
     return { prices, fetchedAt: new Date().toISOString() };
+  } catch (error) {
+    externalUnavailableUntil = Date.now() + (Number(process.env.MARKET_EXTERNAL_RETRY_MS) || DEFAULT_RETRY_DELAY_MS);
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
